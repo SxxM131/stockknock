@@ -1001,7 +1001,7 @@ try {
 SKJWT_SECRET=<생성된-키>
 
 # OpenAI API 키
-GEMINI_API_KEY=sk-...
+OPENAI_API_KEY=sk-...
 
 # 데이터베이스 설정 (application.properties)
 spring.datasource.url=jdbc:postgresql://localhost:5432/stockknockdb

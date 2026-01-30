@@ -6,20 +6,14 @@ package com.sxxm.stockknock.ai.service;
 
 import com.sxxm.stockknock.ai.dto.AIRequestOptions;
 import com.sxxm.stockknock.ai.dto.AIResponseResult;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.theokanning.openai.client.OpenAiApi;
 import com.theokanning.openai.service.OpenAiService;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
-import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import retrofit2.Retrofit;
-import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
-import retrofit2.converter.jackson.JacksonConverterFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -37,29 +31,16 @@ public class GPTClientService {
     @Value("${gpt.api.key}")
     private String apiKey;
 
-    @Value("${gpt.api.url:https://generativelanguage.googleapis.com/v1beta/openai/}")
-    private String apiUrl;
-
-    @Value("${gpt.model:gemini-flash-latest}")
+    @Value("${gpt.model:gpt-4o-mini}")
     private String model;
 
     /**
-     * OpenAiService 인스턴스 생성 (Custom URL 지원)
+     * OpenAiService 인스턴스 생성 (Standard OpenAI URL)
      */
     private OpenAiService getOpenAiService() {
         try {
-            ObjectMapper mapper = OpenAiService.defaultObjectMapper();
-            OkHttpClient client = OpenAiService.defaultClient(apiKey, Duration.ofSeconds(60));
-            
-            Retrofit retrofit = new Retrofit.Builder()
-                    .baseUrl(apiUrl)
-                    .client(client)
-                    .addConverterFactory(JacksonConverterFactory.create(mapper))
-                    .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
-                    .build();
-
-            OpenAiApi api = retrofit.create(OpenAiApi.class);
-            return new OpenAiService(api);
+            // 표준 OpenAI API 사용 (Duration만 설정)
+            return new OpenAiService(apiKey, Duration.ofSeconds(60));
         } catch (Exception e) {
             log.error("OpenAiService 초기화 실패: {}", e.getMessage(), e);
             throw new RuntimeException("OpenAiService 초기화 실패", e);
@@ -70,7 +51,7 @@ public class GPTClientService {
      * GPT 비동기 응답 생성 (기준 API)
      * 모든 GPT 호출은 이 메서드를 통해 통일된 방식으로 처리됩니다.
      *
-     * @param prompt 사용자 프롬프트
+     * @param prompt  사용자 프롬프트
      * @param options 호출 옵션 (null이면 기본값 사용)
      * @return AIResponseResult를 담은 Mono (성공/실패 여부와 원인 포함)
      */
@@ -82,7 +63,7 @@ public class GPTClientService {
         final AIRequestOptions finalOptions = options;
 
         return Mono.fromCallable(() -> generateResponseBlocking(prompt, finalOptions))
-                .subscribeOn(Schedulers.boundedElastic())  // 별도 스레드 풀에서 실행
+                .subscribeOn(Schedulers.boundedElastic()) // 별도 스레드 풀에서 실행
                 .timeout(java.time.Duration.ofSeconds(finalOptions.getTimeoutSeconds()))
                 .onErrorResume(e -> {
                     // 예외 타입별로 구분하여 처리
@@ -102,7 +83,7 @@ public class GPTClientService {
                         errorMessage = "IO 오류: " + e.getCause().getMessage();
                         log.error("[GPT] {}", errorMessage);
                     } else if (e instanceof RuntimeException && e.getMessage() != null &&
-                               e.getMessage().contains("OpenAiService")) {
+                            e.getMessage().contains("OpenAiService")) {
                         failureType = AIResponseResult.FailureType.INITIALIZATION_ERROR;
                         errorMessage = "OpenAiService 초기화 실패: " + e.getMessage();
                         log.error("[GPT] {}", errorMessage);
@@ -132,8 +113,7 @@ public class GPTClientService {
         if (apiKey == null || apiKey.isBlank()) {
             return AIResponseResult.failure(
                     AIResponseResult.FailureType.INITIALIZATION_ERROR,
-                    "GPT API 키가 설정되지 않았습니다."
-            );
+                    "GPT API 키가 설정되지 않았습니다.");
         }
 
         // OpenAiService 초기화 시도
@@ -143,25 +123,21 @@ public class GPTClientService {
         } catch (ExceptionInInitializerError e) {
             return AIResponseResult.failure(
                     AIResponseResult.FailureType.INITIALIZATION_ERROR,
-                    "OpenAiService 클래스 초기화 실패 (의존성 충돌): " + e.getMessage()
-            );
+                    "OpenAiService 클래스 초기화 실패 (의존성 충돌): " + e.getMessage());
         } catch (NoClassDefFoundError e) {
             return AIResponseResult.failure(
                     AIResponseResult.FailureType.INITIALIZATION_ERROR,
-                    "OpenAiService 클래스를 찾을 수 없습니다: " + e.getMessage()
-            );
+                    "OpenAiService 클래스를 찾을 수 없습니다: " + e.getMessage());
         } catch (Throwable e) {
             return AIResponseResult.failure(
                     AIResponseResult.FailureType.INITIALIZATION_ERROR,
-                    "OpenAiService 초기화 실패: " + e.getMessage()
-            );
+                    "OpenAiService 초기화 실패: " + e.getMessage());
         }
 
         if (service == null) {
             return AIResponseResult.failure(
                     AIResponseResult.FailureType.INITIALIZATION_ERROR,
-                    "OpenAiService가 null입니다."
-            );
+                    "OpenAiService가 null입니다.");
         }
 
         try {
@@ -170,8 +146,7 @@ public class GPTClientService {
             // System prompt 추가
             messages.add(new ChatMessage(
                     ChatMessageRole.SYSTEM.value(),
-                    options.getSystemPrompt()
-            ));
+                    options.getSystemPrompt()));
 
             // 대화 기록 추가 (있는 경우)
             if (options.getConversationHistory() != null && !options.getConversationHistory().isEmpty()) {
@@ -181,8 +156,7 @@ public class GPTClientService {
             // User prompt 추가
             messages.add(new ChatMessage(
                     ChatMessageRole.USER.value(),
-                    prompt
-            ));
+                    prompt));
 
             ChatCompletionRequest completionRequest = ChatCompletionRequest.builder()
                     .model(model)
@@ -200,33 +174,29 @@ public class GPTClientService {
             if (content == null || content.isBlank()) {
                 return AIResponseResult.failure(
                         AIResponseResult.FailureType.API_ERROR,
-                        "GPT API가 빈 응답을 반환했습니다."
-                );
+                        "GPT API가 빈 응답을 반환했습니다.");
             }
 
             return AIResponseResult.success(content);
         } catch (Exception e) {
-            // OpenAiService의 createChatCompletion은 SocketTimeoutException이나 IOException을 직접 던지지 않음
+            // OpenAiService의 createChatCompletion은 SocketTimeoutException이나 IOException을 직접
+            // 던지지 않음
             // 대신 일반 Exception으로 래핑되어 전달됨
             // 원인 예외를 확인하여 타입 구분
             Throwable cause = e.getCause();
             if (cause instanceof SocketTimeoutException) {
                 return AIResponseResult.failure(
                         AIResponseResult.FailureType.SOCKET_TIMEOUT,
-                        "소켓 타임아웃: " + cause.getMessage()
-                );
+                        "소켓 타임아웃: " + cause.getMessage());
             } else if (cause instanceof IOException) {
                 return AIResponseResult.failure(
                         AIResponseResult.FailureType.IO_ERROR,
-                        "IO 오류: " + cause.getMessage()
-                );
+                        "IO 오류: " + cause.getMessage());
             } else {
                 return AIResponseResult.failure(
                         AIResponseResult.FailureType.API_ERROR,
-                        "GPT API 호출 실패: " + e.getMessage()
-                );
+                        "GPT API 호출 실패: " + e.getMessage());
             }
         }
     }
 }
-

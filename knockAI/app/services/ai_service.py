@@ -7,11 +7,10 @@ load_dotenv()
 
 class AIService:
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY")
-        self.model = os.getenv("GPT_MODEL", "gemini-flash-latest")
+        self.api_key = os.getenv("OPENAI_API_KEY")
+        self.model = os.getenv("GPT_MODEL", "gpt-4o-mini")
         self.client = OpenAI(
-            api_key=self.api_key,
-            base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+            api_key=self.api_key
         ) if self.api_key else None
 
     def analyze_news(self, news_content: str) -> str:
