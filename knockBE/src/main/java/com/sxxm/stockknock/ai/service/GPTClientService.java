@@ -6,19 +6,26 @@ package com.sxxm.stockknock.ai.service;
 
 import com.sxxm.stockknock.ai.dto.AIRequestOptions;
 import com.sxxm.stockknock.ai.dto.AIResponseResult;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.theokanning.openai.client.OpenAiApi;
 import com.theokanning.openai.service.OpenAiService;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatMessage;
 import com.theokanning.openai.completion.chat.ChatMessageRole;
+import okhttp3.OkHttpClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import retrofit2.Retrofit;
+import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
+import retrofit2.converter.jackson.JacksonConverterFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
 import java.net.SocketTimeoutException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,15 +37,29 @@ public class GPTClientService {
     @Value("${gpt.api.key}")
     private String apiKey;
 
-    @Value("${gpt.model:gpt-4o-mini}")
+    @Value("${gpt.api.url:https://generativelanguage.googleapis.com/v1beta/openai/}")
+    private String apiUrl;
+
+    @Value("${gpt.model:gemini-flash-latest}")
     private String model;
 
     /**
-     * OpenAiService 인스턴스 생성
+     * OpenAiService 인스턴스 생성 (Custom URL 지원)
      */
     private OpenAiService getOpenAiService() {
         try {
-            return new OpenAiService(apiKey);
+            ObjectMapper mapper = OpenAiService.defaultObjectMapper();
+            OkHttpClient client = OpenAiService.defaultClient(apiKey, Duration.ofSeconds(60));
+            
+            Retrofit retrofit = new Retrofit.Builder()
+                    .baseUrl(apiUrl)
+                    .client(client)
+                    .addConverterFactory(JacksonConverterFactory.create(mapper))
+                    .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
+                    .build();
+
+            OpenAiApi api = retrofit.create(OpenAiApi.class);
+            return new OpenAiService(api);
         } catch (Exception e) {
             log.error("OpenAiService 초기화 실패: {}", e.getMessage(), e);
             throw new RuntimeException("OpenAiService 초기화 실패", e);

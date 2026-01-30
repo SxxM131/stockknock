@@ -7,9 +7,12 @@ load_dotenv()
 
 class AIService:
     def __init__(self):
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        self.model = os.getenv("GPT_MODEL", "gpt-4o-mini")
-        self.client = OpenAI(api_key=self.api_key) if self.api_key else None
+        self.api_key = os.getenv("GEMINI_API_KEY")
+        self.model = os.getenv("GPT_MODEL", "gemini-flash-latest")
+        self.client = OpenAI(
+            api_key=self.api_key,
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+        ) if self.api_key else None
 
     def analyze_news(self, news_content: str) -> str:
         """뉴스 분석"""
@@ -174,7 +177,8 @@ class AIService:
                 temperature=0.6,
                 max_tokens=1000
             )
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            return content if content else "AI가 응답을 생성하지 못했습니다. (내용 없음/필터링됨)"
         except Exception as e:
             return f"AI 분석 중 오류가 발생했습니다: {str(e)}"
 
@@ -221,7 +225,8 @@ class AIService:
                 temperature=0.6,
                 max_tokens=1000
             )
-            return response.choices[0].message.content
+            content = response.choices[0].message.content
+            return content if content else "AI가 응답을 생성하지 못했습니다. (내용 없음/필터링됨)"
         except Exception as e:
             return f"AI 분석 중 오류가 발생했습니다: {str(e)}"
 

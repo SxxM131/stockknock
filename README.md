@@ -649,7 +649,7 @@ SKJWT_SECRET=<생성된-64-byte-이상-키>
 # ============================================
 # OpenAI API (필수)
 # ============================================
-OPENAI_API_KEY=your-openai-api-key
+GEMINI_API_KEY=your-openai-api-key
 GPT_MODEL=gpt-4o-mini
 GPT_API_URL=https://api.openai.com/v1/chat/completions
 
@@ -786,7 +786,7 @@ SKJWT_SECRET=<생성된-64-byte-이상-키>
 | 변수명 | 설명 | 예시 | 보안 요구사항 |
 |--------|------|------|-------------|
 | `SKJWT_SECRET` | JWT 토큰 서명 키 | `openssl rand -base64 64` | **64 bytes 이상 필수** |
-| `OPENAI_API_KEY` | OpenAI API 키 | `sk-...` | - |
+| `GEMINI_API_KEY` | OpenAI API 키 | `sk-...` | - |
 
 ### 선택적 환경 변수
 
