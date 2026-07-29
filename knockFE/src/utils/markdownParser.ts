@@ -95,7 +95,7 @@ const processInlineMarkdown = (text: string): string => {
 
   // 코드 처리 먼저 (코드 안의 마크다운은 처리하지 않음)
   const codeBlocks: string[] = [];
-  html = html.replace(/`([^`]+?)`/g, (match, content) => {
+  html = html.replace(/`([^`]+?)`/g, (_match, content) => {
     const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
     codeBlocks.push(`<code>${content}</code>`);
     return placeholder;

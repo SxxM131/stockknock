@@ -5,6 +5,21 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
+### Secrets / local env ###
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.staging
+!.env.example
+
+### Python ###
+**/venv/
+**/venv_test/
+**/__pycache__/
+*.py[cod]
+
 ### STS ###
 .apt_generated
 .classpath
@@ -35,3 +50,4 @@ out/
 
 ### VS Code ###
 .vscode/
+.DS_Store

@@ -2,7 +2,7 @@ import { apiClient } from './client';
 
 export interface AuthRequest {
   username?: string; // 로그인 시 필수, 회원가입 시 필수
-  email: string;
+  email?: string;    // 회원가입 시에만 필수
   password: string;
   nickname?: string; // 회원가입 시에만 사용
 }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { authAPI, type UserProfile, type UserUpdateRequest } from '../../api/auth';
+import { authAPI, type UserUpdateRequest } from '../../api/auth';
+import type { UserProfile } from '../../api/auth';
 import { useAuth } from '../../context/AuthContext';
 import './MyPage.css';
 
@@ -30,20 +31,23 @@ const MyPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // 사용자 정보 조회
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, error: profileError } = useQuery<UserProfile>({
     queryKey: ['userProfile'],
     queryFn: () => authAPI.getProfile(),
-    enabled: !!user && !!localStorage.getItem('token'), // 토큰이 있을 때만 호출
-    retry: false, // 400 오류는 재시도하지 않음
-    onError: (error: any) => {
-      // 400 또는 401 오류 시 토큰이 유효하지 않으므로 로그아웃 처리
-      if (error.response?.status === 400 || error.response?.status === 401) {
-        console.warn('토큰이 유효하지 않습니다. 로그아웃 처리합니다.');
-        logout();
-        navigate('/login');
-      }
-    },
+    enabled: !!user && !!localStorage.getItem('token'),
+    retry: false,
   });
+
+  // TanStack Query v5 — onError 콜백 대신 useEffect 로 에러 처리
+  useEffect(() => {
+    if (!profileError) return;
+    const err = profileError as any;
+    if (err.response?.status === 400 || err.response?.status === 401) {
+      console.warn('토큰이 유효하지 않습니다. 로그아웃 처리합니다.');
+      logout();
+      navigate('/login');
+    }
+  }, [profileError, logout, navigate]);
 
   // 프로필 정보 초기화
   useEffect(() => {

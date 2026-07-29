@@ -628,15 +628,23 @@ PostgreSQL 데이터베이스 생성:
 
 ```sql
 CREATE DATABASE stockknockdb;
-CREATE USER sxxm WITH PASSWORD 'sxxmpass';
-GRANT ALL PRIVILEGES ON DATABASE stockknockdb TO sxxm;
+CREATE USER your_db_user WITH PASSWORD 'your_db_password_here';
+GRANT ALL PRIVILEGES ON DATABASE stockknockdb TO your_db_user;
 ```
 
-또는 `application.properties`에서 데이터베이스 설정을 수정하세요.
+`knockBE/.env.example` 과 `knockAI/.env.example` 을 복사해 `.env` 를 만들고, 위에서 설정한 DB 계정·비밀번호를 넣으세요.
 
 ### 3. 환경 변수 설정
 
-프로젝트 루트에 `.env` 파일을 생성하고 필요한 환경 변수를 설정하세요:
+`knockBE/.env.example` / `knockAI/.env.example` 을 참고해 각 서비스 디렉터리에 `.env` 를 생성하세요:
+
+```bash
+cp knockBE/.env.example knockBE/.env
+cp knockAI/.env.example knockAI/.env
+# .env 파일을 열어 실제 값으로 교체 (커밋 금지)
+```
+
+예시 (실제 비밀값은 넣지 마세요 — 플레이스홀더만):
 
 ```bash
 # ============================================
@@ -644,12 +652,21 @@ GRANT ALL PRIVILEGES ON DATABASE stockknockdb TO sxxm;
 # ============================================
 # ⚠️ SKJWT_SECRET은 반드시 64 bytes 이상이어야 합니다!
 # 생성 방법: openssl rand -base64 64 | tr -d '\n'
-SKJWT_SECRET=<생성된-64-byte-이상-키>
+SKJWT_SECRET=your_jwt_secret_here_min_64_bytes
+
+# ============================================
+# Database (필수)
+# ============================================
+DB_URL=jdbc:postgresql://localhost:5432/stockknockdb
+DB_USERNAME=your_db_user
+DB_PASSWORD=your_db_password_here
+# FastAPI용
+DATABASE_URL=postgresql://your_db_user:your_db_password_here@localhost:5432/stockknockdb
 
 # ============================================
 # OpenAI API (필수)
 # ============================================
-OPENAI_API_KEY=your-openai-api-key
+OPENAI_API_KEY=your_openai_api_key_here
 GPT_MODEL=gpt-4o-mini
 GPT_API_URL=https://api.openai.com/v1/chat/completions
 
@@ -658,7 +675,7 @@ GPT_API_URL=https://api.openai.com/v1/chat/completions
 # ============================================
 # 방법 1: App Password 사용
 MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD=your-16-digit-app-password
+MAIL_PASSWORD=your_16_digit_app_password_here
 
 # 방법 2: OAuth2 사용 (권장, 더 안전)
 # GMAIL_OAUTH2_CLIENT_ID=your-oauth2-client-id
@@ -670,29 +687,31 @@ NOTIFICATION_EMAIL_ENABLED=false
 # ============================================
 # 주가 API (선택사항, 백업용)
 # ============================================
-ALPHA_VANTAGE_API_KEY=your-alpha-vantage-key
-TWELVE_DATA_API_KEY=your-twelve-data-key
+ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here
+TWELVE_DATA_API_KEY=your_twelve_data_key_here
 
 # ============================================
 # 뉴스 API (선택사항)
 # ============================================
-NEWS_API_KEY=your-newsapi-key
+NEWS_API_KEY=your_newsapi_key_here
 ```
 
 > 💡 **보안 팁**: 
 > - 프로덕션 환경에서는 `application-prod.properties` 사용
 > - 모든 민감한 정보는 환경 변수로 관리
 > - `.env` 파일은 절대 Git에 커밋하지 마세요!
+> - DB/JWT 값은 코드·문서에 하드코딩하지 마세요.
 
 ### 4. Backend 실행
 
 ```bash
 cd knockBE
 
-# Gradle Wrapper 사용 (권장)
+# 환경 변수 로드 후 실행 (권장)
+set -a && source .env && set +a
 ./gradlew bootRun
 
-# 또는 직접 실행
+# 또는 직접 실행 (환경 변수가 이미 export 된 경우)
 gradle bootRun
 ```
 
@@ -758,9 +777,9 @@ chmod +x quick_start.sh
 openssl rand -base64 64 | tr -d '\n'
 ```
 
-생성된 키를 `.env` 파일에 설정하세요:
+생성된 키를 `knockBE/.env` 파일에 설정하세요:
 ```bash
-SKJWT_SECRET=<생성된-64-byte-이상-키>
+SKJWT_SECRET=your_jwt_secret_here_min_64_bytes
 ```
 
 #### 2. 환경 분리

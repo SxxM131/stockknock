@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { portfolioAPI } from '../../api/portfolio';
-import { alertsAPI } from '../../api/alerts';
+import { portfolioAPI, type PortfolioDto, type PortfolioAnalysisDto } from '../../api/portfolio';
+import { alertsAPI, type PriceAlert } from '../../api/alerts';
 import { parseMarkdown } from '../../utils/markdownParser';
 import PortfolioHeroCard from '../../components/PortfolioHeroCard';
 import './Portfolio.css';
@@ -34,24 +34,18 @@ const Portfolio: React.FC = () => {
   const [addQuantity, setAddQuantity] = useState('');
   const [addAvgPrice, setAddAvgPrice] = useState('');
 
-  const { data: portfolio, isLoading } = useQuery({
+  const { data: portfolio, isLoading } = useQuery<PortfolioDto[]>({
     queryKey: ['portfolio'],
     queryFn: () => portfolioAPI.getAll(),
-    onSuccess: (data) => {
-      console.log('Portfolio data:', data);
-      if (data && data.length > 0) {
-        console.log('First item stock:', data[0].stock);
-      }
-    },
   });
 
-  const { data: analysis, error: analysisError } = useQuery({
+  const { data: analysis, error: analysisError } = useQuery<PortfolioAnalysisDto>({
     queryKey: ['portfolioAnalysis'],
     queryFn: () => portfolioAPI.getAnalysis(),
     retry: 1,
   });
 
-  const { data: alerts } = useQuery({
+  const { data: alerts } = useQuery<PriceAlert[]>({
     queryKey: ['alerts'],
     queryFn: () => alertsAPI.getAll(),
   });
@@ -219,7 +213,7 @@ const Portfolio: React.FC = () => {
             </button>
           </div>
           <div className="portfolio-list">
-            {portfolio.map((item: any) => (
+            {portfolio.map((item: PortfolioDto) => (
               <div key={item.id} className="portfolio-item">
                 <div className="stock-info">
                   <h3>{item.stock?.name || '종목명 없음'}</h3>

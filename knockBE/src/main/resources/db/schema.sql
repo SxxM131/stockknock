@@ -1,15 +1,28 @@
 -- ============================================
 -- StocKKnock Database Schema
--- PostgreSQL
+-- PostgreSQL 12+ / Supabase 호환
 -- ============================================
--- 
+--
 -- 이 스키마는 StocKKnock 애플리케이션의 데이터베이스 구조를 정의합니다.
 -- 총 14개의 테이블로 구성되어 있습니다.
--- 
--- 실행 방법:
--- psql -U sxxm -d stockknockdb -f schema.sql
--- 또는
--- PGPASSWORD=sxxmpass psql -U sxxm -d stockknockdb -f schema.sql
+--
+-- ── 로컬 psql 실행 ────────────────────────────────────────────────────────
+--   psql -U your_db_user -d stockknockdb -h localhost -f schema.sql
+--   PGPASSWORD="$DB_PASSWORD" psql -U "$DB_USERNAME" -d stockknockdb -h localhost -f schema.sql
+--
+-- ── Supabase SQL Editor 실행 ──────────────────────────────────────────────
+--   1. Supabase 대시보드 → SQL Editor → New Query
+--   2. 이 파일 전체를 붙여넣고 Run (F5)
+--   3. 이미 테이블이 있어도 CREATE TABLE IF NOT EXISTS 이므로 재실행 안전
+--
+-- ── Supabase 호환 참고사항 ────────────────────────────────────────────────
+--   - BIGSERIAL (= BIGINT + sequence) : Supabase 완전 지원
+--   - NUMERIC, TEXT, BOOLEAN, TIMESTAMP, DATE : 모두 지원
+--   - ON DELETE CASCADE 외래키 : 지원
+--   - PARTIAL INDEX (WHERE 절 포함) : PostgreSQL 12+ 지원 ← Supabase 해당
+--   - Supabase 는 기본적으로 public 스키마에 생성됩니다.
+--   - RLS(Row Level Security)는 이 스크립트에서 설정하지 않습니다.
+--     필요 시 Supabase 대시보드 > Authentication > Policies 에서 추가하세요.
 -- ============================================
 
 -- ============================================

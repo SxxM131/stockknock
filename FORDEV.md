@@ -997,21 +997,22 @@ try {
 
 **필수 환경 변수**:
 ```bash
-# JWT 시크릿 (64 bytes 이상 필수)
-SKJWT_SECRET=<생성된-키>
+# JWT 시크릿 (64 bytes 이상 필수) — 기본값 없음
+SKJWT_SECRET=your_jwt_secret_here_min_64_bytes
 
 # OpenAI API 키
-OPENAI_API_KEY=sk-...
+OPENAI_API_KEY=your_openai_api_key_here
 
-# 데이터베이스 설정 (application.properties)
-spring.datasource.url=jdbc:postgresql://localhost:5432/stockknockdb
-spring.datasource.username=sxxm
-spring.datasource.password=sxxmpass
+# 데이터베이스 (application.properties 는 환경 변수만 참조)
+DB_URL=jdbc:postgresql://localhost:5432/stockknockdb
+DB_USERNAME=your_db_user
+DB_PASSWORD=your_db_password_here
 ```
 
 **실행 방법**:
 ```bash
 cd knockBE
+set -a && source .env && set +a
 ./gradlew bootRun
 ```
 
@@ -1034,7 +1035,8 @@ npm run dev
 
 **스키마 생성**:
 ```bash
-psql -U sxxm -d stockknockdb -f knockBE/src/main/resources/db/schema.sql
+# 비밀번호는 프롬프트 입력 또는 PGPASSWORD 환경 변수로 전달
+psql -U your_db_user -d stockknockdb -f knockBE/src/main/resources/db/schema.sql
 ```
 
 ---

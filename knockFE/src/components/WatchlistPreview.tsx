@@ -41,12 +41,6 @@ const getStockName = (stock: StockDto) => {
   return stockNameMap[stock.symbol] || stock.symbol;
 };
 
-// 가격 포맷팅
-const formatPrice = (price: number | undefined) => {
-  if (!price || price === 0) return '-';
-  return price.toLocaleString('ko-KR') + '원';
-};
-
 // 등락률 포맷팅 (대시보드용 - 등락률 위주)
 const formatChange = (current: number | undefined, previous: number | undefined) => {
   if (!current || !previous) {

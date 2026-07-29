@@ -1,19 +1,16 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { portfolioAPI } from '../../api/portfolio';
+import { portfolioAPI, type PortfolioDto, type PortfolioAnalysisDto } from '../../api/portfolio';
 import { parseMarkdown } from '../../utils/markdownParser';
 import './PortfolioProfitAnalysis.css';
 
 const PortfolioProfitAnalysis: React.FC = () => {
-  const navigate = useNavigate();
-
-  const { data: portfolio, isLoading } = useQuery({
+  const { data: portfolio, isLoading } = useQuery<PortfolioDto[]>({
     queryKey: ['portfolio'],
     queryFn: () => portfolioAPI.getAll(),
   });
 
-  const { data: analysis, isLoading: analysisLoading } = useQuery({
+  const { data: analysis, isLoading: analysisLoading } = useQuery<PortfolioAnalysisDto>({
     queryKey: ['portfolioAnalysis'],
     queryFn: () => portfolioAPI.getAnalysis(),
   });
