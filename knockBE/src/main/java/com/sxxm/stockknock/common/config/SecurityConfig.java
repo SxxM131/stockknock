@@ -48,6 +48,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/public/**").permitAll()
                         .requestMatchers("/api/news/**").permitAll() // 뉴스는 공개 API (수집 포함)
+                        .requestMatchers("/api/youtube/**").permitAll() // 유튜버 브리핑 공개 API
                         .requestMatchers("/api/stocks/**").permitAll() // 주식 정보도 공개
                         .anyRequest().authenticated()
                 )

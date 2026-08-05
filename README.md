@@ -1,6 +1,6 @@
 # StocKKnock - AI 기반 통합 주식 분석 플랫폼
 
-국내·해외 주식 투자자를 위한 AI 기반 주식 분석 플랫폼입니다. 실시간 주가 정보, AI 뉴스 분석, 포트폴리오 관리, 가격 알림 등 종합적인 투자 도구를 제공합니다.
+국내·해외 주식 투자자를 위한 AI 기반 주식 분석 플랫폼입니다. 실시간 주가 정보, AI 뉴스·유튜버 시장 브리핑, 포트폴리오 관리, 가격 알림 등 종합적인 투자 도구를 제공합니다.
 
 ---
 
@@ -27,11 +27,18 @@
 - 비용 최적화를 위한 스마트 업데이트 스케줄링
 
 ### 📰 오늘의 시장 브리핑
-- **GPT 기반 일일 시장 요약** (하루 1회 생성)
-- 사용자 관심 종목을 반영한 맞춤형 브리핑
-- 장 시작 전 자동 생성 (스케줄러)
+- **GPT 기반 일일 시장 요약** (평일 하루 1회 생성, DB 캐시)
+- 장 시작 전 스케줄러 자동 생성
 - 실패 시에도 기본 메시지 제공 (서비스 안정성)
 - 전역 공유 콘텐츠 (모든 사용자 동일 브리핑)
+
+### 🎬 유튜버 시장 브리핑 (Phase 1)
+- 관리자 지정 **화이트리스트 채널**의 신규 영상 자동 수집 (YouTube Data API v3)
+- 자막(없으면 설명)을 GPT(`gpt-4o-mini`)로 요약 → **핵심 전망 / 언급 종목 / 투자 톤** 저장
+- 하루 2회 스케줄 (08:30, 15:30) — 신규 영상 1건당 GPT 1회만 (재분석 방지)
+- **자막 원문은 DB에 저장하지 않음** (요약·종목·톤만 저장, 저작권·비용 고려)
+- 전역 공유 콘텐츠 — News 페이지 **「유튜버 브리핑」** 탭에서 조회
+- Phase 2(사용자별 채널 구독)는 미구현
 
 ### 📊 포트폴리오 관리
 - 보유 종목 관리 (추가/수정/삭제)
@@ -64,7 +71,7 @@
 - 최근 7일 뉴스 조회 (기본값, 조정 가능)
 - 뉴스별 상세 정보 및 AI 분석 결과
 - 종목별 연관 뉴스 필터링
-- 주요 종목 뉴스 자동 수집 (매일 오전 9시)
+- News 페이지에서 **뉴스 / 유튜버 브리핑** 탭 전환
 
 ### ⭐ 관심 종목
 - 관심 종목 추가/삭제
@@ -89,20 +96,17 @@
 
 ### Backend (knockBE)
 - **언어**: Java 17
-- **프레임워크**: Spring Boot 4.0.0
-- **데이터베이스**: PostgreSQL 12+
+- **프레임워크**: Spring Boot 3.3.5
+- **데이터베이스**: PostgreSQL 12+ (로컬 또는 **Supabase**)
 - **ORM**: Spring Data JPA (Hibernate)
 - **보안**: Spring Security + JWT
-- **AI**: OpenAI GPT-4 API (gpt-4o-mini 기본값)
-  - 백엔드에서 직접 GPT API 호출 (OpenAiService)
-  - FastAPI 폴백 지원
-  - **주의**: Jackson 2.x 버전 사용 (OpenAiService 라이브러리 호환성)
-  - `build.gradle`에서 Jackson 2.17.2 강제 사용
+- **AI**: OpenAI GPT (`gpt-4o-mini` 기본값) — `GPTClientService` / OpenAiService
 - **스케줄러**: Spring Scheduling
-- **HTTP 클라이언트**: Spring WebFlux (WebClient)
+- **HTTP 클라이언트**: Spring WebFlux (WebClient) — 주가·YouTube API
 - **이메일**: Spring Mail (Gmail SMTP)
 - **API 문서**: SpringDoc OpenAPI (Swagger UI)
 - **빌드 도구**: Gradle
+- **배포**: Docker (Render 등) — `knockBE/Dockerfile`
 
 ### Frontend (knockFE)
 - **언어**: TypeScript
@@ -115,9 +119,10 @@
 
 ### 외부 API
 - **주가 정보**: Yahoo Finance, Alpha Vantage, Twelve Data
-- **뉴스**: NewsAPI
-- **AI**: OpenAI GPT-4
+- **유튜브**: YouTube Data API v3 (채널 영상 수집)
+- **AI**: OpenAI GPT
 - **이메일**: Gmail SMTP
+- ~~NewsAPI~~ — BE 수집은 GPT 시장 브리핑·유튜버 브리핑 중심으로 전환 (레거시 문서/설정 잔존 가능)
 
 ---
 
@@ -149,13 +154,21 @@ knockBE/src/main/java/com/sxxm/stockknock/
 │   ├── entity/             # Portfolio, PortfolioItem
 │   └── dto/                # PortfolioDto, PortfolioAnalysisDto
 │
-├── news/                   # 뉴스 관련
+├── news/                   # 뉴스 · 시장 브리핑
 │   ├── controller/         # NewsController
-│   ├── service/            # NewsService, NewsCrawlerService, NewsStockAssociationService
-│   ├── repository/         # NewsRepository, NewsAnalysisRepository, NewsStockRelationRepository
-│   ├── entity/             # News, NewsAnalysis, NewsStockRelation
+│   ├── service/            # NewsService, MarketBriefingService, NewsStockAssociationService
+│   ├── repository/         # NewsRepository, NewsAnalysisRepository, MarketBriefingRepository, ...
+│   ├── entity/             # News, NewsAnalysis, MarketBriefing, NewsStockRelation
 │   ├── dto/                # NewsDto, NewsAnalysisDto
-│   └── scheduler/          # NewsCrawlerScheduler
+│   └── scheduler/          # MarketBriefingScheduler, NewsCrawlerScheduler(정리용)
+│
+├── youtube/                # 유튜버 시장 브리핑
+│   ├── controller/         # YoutubeController, YoutubeAdminController
+│   ├── service/            # YoutubeService, YoutubeCrawlerService, YoutubeTranscriptService
+│   ├── repository/         # YoutubeChannelRepository, YoutubeVideoRepository, YoutubeVideoAnalysisRepository
+│   ├── entity/             # YoutubeChannel, YoutubeVideo, YoutubeVideoAnalysis, VideoAnalysisStatus
+│   ├── dto/                # YoutubeVideoDto, YoutubeVideoAnalysisDto, YoutubeChannelDto, ...
+│   └── scheduler/          # YoutubeCrawlerScheduler (08:30, 15:30)
 │
 ├── alert/                  # 가격 알림 관련
 │   ├── controller/         # PriceAlertController
@@ -192,7 +205,8 @@ knockFE/src/
 │   ├── auth.ts            # 인증 API
 │   ├── stock.ts           # 주식 API
 │   ├── portfolio.ts      # 포트폴리오 API
-│   ├── news.ts            # 뉴스 API (Spring Boot)
+│   ├── news.ts            # 뉴스 · 시장 브리핑 API
+│   ├── youtube.ts         # 유튜버 브리핑 API
 │   ├── ai.ts              # AI API (Spring Boot)
 │   ├── watchlist.ts       # 관심 종목 API
 │   └── alerts.ts          # 가격 알림 API
@@ -201,7 +215,7 @@ knockFE/src/
 │   ├── Login.tsx          # 로그인 페이지
 │   ├── Dashboard.tsx      # 대시보드
 │   ├── Portfolio.tsx     # 포트폴리오
-│   ├── News.tsx           # 뉴스
+│   ├── News.tsx           # 뉴스 · 유튜버 브리핑 탭
 │   ├── AIChat.tsx         # AI 채팅
 │   ├── EmailChange.tsx    # 이메일 변경
 │   └── MyPage.tsx         # 마이페이지
@@ -235,6 +249,9 @@ erDiagram
     
     news ||--|| news_analyses : "analyzed by"
     news ||--o{ news_stock_relations : "related to"
+    
+    youtube_channels ||--o{ youtube_videos : "publishes"
+    youtube_videos ||--|| youtube_video_analyses : "analyzed by"
     
     users {
         bigint id PK
@@ -342,6 +359,37 @@ erDiagram
         boolean is_verified "default false"
         timestamp expires_at "not null"
         timestamp created_at
+    }
+    
+    youtube_channels {
+        bigint id PK
+        string channel_id UK "YouTube UCxxxx"
+        string channel_name
+        string category "국내주식/미국주식/거시경제"
+        boolean is_active
+        timestamp created_at
+    }
+    
+    youtube_videos {
+        bigint id PK
+        bigint channel_id FK
+        string video_id UK "YouTube video id"
+        text title
+        text url
+        text thumbnail_url
+        string analysis_status "PENDING/SUCCESS/FAILED/SKIPPED"
+        timestamp published_at
+        timestamp created_at
+    }
+    
+    youtube_video_analyses {
+        bigint video_id PK "FK to youtube_videos.id"
+        text summary "AI 요약만 저장 (자막 원문 미저장)"
+        text key_stocks "JSON 배열 문자열"
+        string forecast_period "단기/중기/장기"
+        string sentiment "positive/negative/neutral"
+        text ai_comment
+        timestamp analyzed_at
     }
 ```
 
@@ -482,6 +530,48 @@ erDiagram
 - `NewsAnalysis.news_id`가 기본 키로 변경 (One-to-One 관계)
 - `impact_analysis` 필드 제거, `ai_comment` 필드 추가
 - `news_stocks` 테이블이 `news_stock_relation`으로 변경, `stock_id` 대신 `stock_symbol` 사용
+
+#### 🎬 YoutubeChannel · YoutubeVideo · YoutubeVideoAnalysis
+
+관리자 화이트리스트 채널의 영상 메타와 **AI 요약만** 저장합니다. 자막 원문은 저장하지 않습니다.
+
+**youtube_channels**
+
+| 컬럼명 | 타입 | 설명 |
+|--------|------|------|
+| `id` | BIGSERIAL | PK |
+| `channel_id` | VARCHAR(64) | YouTube 채널 ID (UK). 시드 `PLACEHOLDER_UC_...` → 실제 `UC...`로 교체 |
+| `channel_name` | VARCHAR(200) | 채널명 |
+| `category` | VARCHAR(50) | 국내주식 / 미국주식 / 거시경제 |
+| `is_active` | BOOLEAN | 수집 on/off |
+| `created_at` | TIMESTAMP | 생성 시각 |
+
+**youtube_videos**
+
+| 컬럼명 | 타입 | 설명 |
+|--------|------|------|
+| `id` | BIGSERIAL | PK |
+| `channel_id` | BIGINT | FK → youtube_channels.id |
+| `video_id` | VARCHAR(32) | YouTube 영상 ID (UK) |
+| `title` / `url` / `thumbnail_url` | TEXT | 메타데이터 |
+| `published_at` | TIMESTAMP | 게시 시각 |
+| `analysis_status` | VARCHAR(20) | PENDING / SUCCESS / FAILED / SKIPPED |
+| `created_at` | TIMESTAMP | 수집 시각 |
+
+**youtube_video_analyses** (`video_id` = PK, NewsAnalysis와 동일 패턴)
+
+| 컬럼명 | 타입 | 설명 |
+|--------|------|------|
+| `video_id` | BIGINT | PK, FK → youtube_videos.id |
+| `summary` | TEXT | 2~3문장 요약 |
+| `key_stocks` | TEXT | 언급 종목 JSON 배열 문자열 |
+| `forecast_period` | VARCHAR(20) | 단기 / 중기 / 장기 |
+| `sentiment` | VARCHAR(20) | positive / negative / neutral |
+| `ai_comment` | TEXT | 한 줄 코멘트 |
+| `analyzed_at` | TIMESTAMP | 분석 시각 |
+
+스키마 파일: `knockBE/src/main/resources/db/schema.sql`  
+`CREATE TABLE IF NOT EXISTS` / `CREATE INDEX IF NOT EXISTS` 이므로 **재실행 안전**. Supabase SQL Editor에 붙여 실행 가능.
 
 ### 제거된 테이블 (불필요한 기능 제거)
 
@@ -691,9 +781,18 @@ ALPHA_VANTAGE_API_KEY=your_alpha_vantage_key_here
 TWELVE_DATA_API_KEY=your_twelve_data_key_here
 
 # ============================================
-# 뉴스 API (선택사항)
+# YouTube Data API v3 (유튜버 브리핑)
 # ============================================
-NEWS_API_KEY=your_newsapi_key_here
+YOUTUBE_API_KEY=your_youtube_data_api_key_here
+
+# ============================================
+# Supabase 사용 시 (Render / 원격)
+# ============================================
+# SPRING_PROFILES_ACTIVE=prod
+# DB_URL=jdbc:postgresql://aws-0-REGION.pooler.supabase.com:5432/postgres?sslmode=require
+# DB_USERNAME=postgres.your-project-ref
+# DB_PASSWORD=your_supabase_db_password_here
+# ⚠️ Direct 호스트(db.*.supabase.co)는 Render에서 IPv6로 Network unreachable 날 수 있음 → Pooler 사용
 ```
 
 > 💡 **보안 팁**: 
@@ -806,6 +905,9 @@ SKJWT_SECRET=your_jwt_secret_here_min_64_bytes
 |--------|------|------|-------------|
 | `SKJWT_SECRET` | JWT 토큰 서명 키 | `openssl rand -base64 64` | **64 bytes 이상 필수** |
 | `OPENAI_API_KEY` | OpenAI API 키 | `sk-...` | - |
+| `DB_USERNAME` / `DB_PASSWORD` | PostgreSQL 계정 | - | 코드에 하드코딩 금지 |
+| `DB_URL` | JDBC URL (원격/Supabase) | `jdbc:postgresql://...pooler.../postgres?sslmode=require` | Pooler 권장 |
+| `DATABASE_URL` | FastAPI용 Postgres URL | `postgresql://...` | - |
 
 ### 선택적 환경 변수
 
@@ -827,11 +929,11 @@ SKJWT_SECRET=your_jwt_secret_here_min_64_bytes
 | `ALPHA_VANTAGE_API_KEY` | Alpha Vantage API 키 | - |
 | `TWELVE_DATA_API_KEY` | Twelve Data API 키 | - |
 
-#### 뉴스 API
+#### YouTube (유튜버 브리핑)
 
 | 변수명 | 설명 | 기본값 |
 |--------|------|--------|
-| `NEWS_API_KEY` | NewsAPI 키 | - |
+| `YOUTUBE_API_KEY` | YouTube Data API v3 키 | - |
 
 #### GPT 설정
 
@@ -919,38 +1021,24 @@ Yahoo Finance (기본)
         → DB 저장된 최신 가격 (최종 폴백)
 ```
 
-### 📰 뉴스 API (News API)
+### 🎬 YouTube Data API v3 (유튜버 브리핑)
 
-#### NewsAPI (newsapi.org)
+**화이트리스트 채널의 최신 영상 메타 수집**
 
-**뉴스 수집 전용 API**
+- **API 키**: 필수 (환경 변수 `YOUTUBE_API_KEY`)
+- **설정**: `application.properties` → `youtube.api.key=${YOUTUBE_API_KEY:}`
+- **사용**: `channels.list` → `playlistItems.list` / `videos.list`
+- **자막**: 공개 timedtext 시도 → description 폴백 → GPT 입력만 사용 (**원문 DB 미저장**)
+- **스케줄**: 매일 08:30, 15:30 (`YoutubeCrawlerScheduler`)
+- **시드**: `schema.sql`의 `PLACEHOLDER_UC_...`를 실제 채널 ID로 교체해야 수집됨
 
-- **URL**: `https://newsapi.org/v2/everything`
-- **API 키**: 필수 (환경 변수 `NEWS_API_KEY`)
-- **제한**: 
-  - 무료 플랜: 일일 100회 요청
-  - 개발자 플랜: 일일 1,000회 요청
-- **설정**: `application.properties` → `news.api.newsapi.key=${NEWS_API_KEY:}`
-- **용도**: 주식 관련 뉴스 수집
-- **언어**: 한국어 (`language=ko`)
-- **정렬**: 발행일 기준 내림차순 (`sortBy=publishedAt`)
+발급: [Google Cloud Console](https://console.cloud.google.com/) → YouTube Data API v3 활성화 → API 키 생성
 
-**설정 방법:**
-1. [NewsAPI](https://newsapi.org/register) 회원가입
-2. Dashboard에서 API 키 확인
-3. 환경 변수 `NEWS_API_KEY` 설정
-4. 백엔드 재시작
+### 📰 뉴스 / 시장 브리핑 (현행)
 
-**뉴스 수집 전략:**
-- **정기 자동 수집**: 하루 2회 (오전 9시, 오후 4시)
-- **수동 수집**: 개발/관리자용 API (`POST /api/news/collect`)
-- **테스트 데이터**: 개발용 API (`POST /api/news/test-data`)
-- **중복 제거**: 제목 유사도 기반 자동 제거
-- **AI 분석**: 수집된 뉴스 중 주요 20개만 분석 (비용 최적화)
-
-**뉴스 수집 쿼리:**
-- 일반 주식 뉴스: `"주식 OR 증시 OR 투자"`
-- 종목별 뉴스: `"{종목명} OR {심볼}"` (예: "삼성전자 OR 005930")
+- **시장 브리핑**: `MarketBriefingScheduler`가 GPT로 생성 후 DB 캐시 (`GET /api/news/market-briefing`)
+- **뉴스 목록·분석**: DB 조회 + AI 분석 API
+- ~~NewsAPI 정기 수집~~ — BE에서 GPT 브리핑·유튜버 브리핑 중심으로 전환됨 (구 문서의 NewsAPI 설정은 레거시)
 
 ### 🤖 AI API
 
@@ -1383,6 +1471,52 @@ Yahoo Finance (기본)
     }
     ```
 
+### 유튜버 브리핑 (YouTube)
+
+#### 활성 채널 목록
+- **`GET /api/youtube/channels`**
+  - **설명**: 화이트리스트 중 `is_active=true` 채널 (프론트 필터용)
+  - **인증**: 불필요 (공개)
+
+#### 브리핑 목록
+- **`GET /api/youtube/briefings?channelId={id}&days={days}`**
+  - **설명**: 최근 N일 SUCCESS 분석 영상 목록 (기본 7일)
+  - **Query**: `channelId` — DB PK (`youtube_channels.id`), 생략 시 전체
+  - **인증**: 불필요 (공개)
+  - **Response** 예시:
+    ```json
+    [
+      {
+        "id": 1,
+        "videoId": "xxxxxxxxxxx",
+        "title": "오늘 시장 전망",
+        "url": "https://www.youtube.com/watch?v=xxxxxxxxxxx",
+        "publishedAt": "2026-08-01T10:00:00",
+        "thumbnailUrl": "https://i.ytimg.com/...",
+        "channelName": "삼프로TV",
+        "category": "국내주식",
+        "analysisStatus": "SUCCESS",
+        "analysis": {
+          "summary": "요약 2~3문장...",
+          "keyStocks": ["005930", "AAPL"],
+          "forecastPeriod": "단기",
+          "sentiment": "positive",
+          "aiComment": "한 줄 코멘트"
+        }
+      }
+    ]
+    ```
+
+#### 브리핑 상세
+- **`GET /api/youtube/briefings/{videoId}`**
+  - **Path**: `videoId` — DB PK (`youtube_videos.id`)
+  - **인증**: 불필요 (공개)
+
+#### 채널 추가 (관리)
+- **`POST /api/admin/youtube/channels`**
+  - **Body**: `{ "channelId": "UCxxxx", "channelName": "...", "category": "국내주식", "isActive": true }`
+  - **인증**: 필요 (JWT) — 관리자 권한 체크는 TODO
+
 ### 가격 알림 (Price Alert)
 
 #### 알림 목록 조회
@@ -1507,6 +1641,9 @@ Yahoo Finance (기본)
 #### 인증이 불필요한 API
 - `POST /api/auth/register` - 회원가입
 - `POST /api/auth/login` - 로그인
+- `GET /api/news/**` - 뉴스 · 시장 브리핑 (공개)
+- `GET /api/youtube/**` - 유튜버 브리핑 (공개)
+- `GET /api/stocks/**` - 주식 정보 (공개)
 
 #### 보안이 강화된 API
 - **이메일 변경**: 인증 코드(10분 유효) + 현재 비밀번호 확인 필요
@@ -1558,12 +1695,15 @@ public class MyScheduler {
 **현재 스케줄러 빈도:**
 - **주가 업데이트**: 시장 개장 시간에만 (평일 09:00-15:30, 매 1분)
 - **알림 체크**: 매 30초
-- **뉴스 수집**: 매 2시간
-- **뉴스 분석**: 주요 20개만 자동 분석 (비용 최적화)
+- **시장 브리핑**: 평일 08:50 (`MarketBriefingScheduler`)
+- **유튜버 브리핑 수집·분석**: 매일 08:30, 15:30 (`YoutubeCrawlerScheduler`)
+- **오래된 뉴스 정리**: 매일 08:05
 
 #### 데이터베이스 마이그레이션
 
-Spring Boot는 `spring.jpa.hibernate.ddl-auto=update` 설정으로 자동 스키마 업데이트를 지원합니다.
+- 로컬 기본: `spring.jpa.hibernate.ddl-auto=update`
+- 프로덕션/Supabase: `validate` — **`schema.sql`을 SQL Editor에서 먼저 실행**
+- 인덱스는 `CREATE INDEX IF NOT EXISTS`라 스키마 재실행 가능
 
 ### Frontend 개발
 
@@ -1664,32 +1804,28 @@ boolean isVerified = emailVerificationService.isEmailVerified("newemail@example.
 |------|------|------------|
 | 주가 업데이트 | 시장 개장 시간만 (평일 09:00-15:30, 1분마다) | 시장 휴장 시간 업데이트 제거 |
 | 알림 체크 | 30초마다 | 기존 10초에서 3배 감소 |
-| 뉴스 수집 | 2시간마다 | 기존 1시간에서 2배 감소 |
-| 뉴스 분석 | 주요 20개만 | 전체 뉴스 대신 상위 20개만 분석 |
+| 시장 브리핑 | 평일 1회 | GPT 1회 생성 후 DB 캐시 |
+| 유튜버 브리핑 | 하루 2회 | 신규 영상만 수집, 영상당 GPT 1회, 자막 원문 미저장 |
 
 ### AI 분석 비용 절감
 
-- **골든 뉴스 우선 분석**: 주가 영향 높은 키워드가 포함된 뉴스 우선 선별
-- **중복 제거**: 제목 유사도 기반 중복 뉴스 자동 제거
-- **주요 종목 우선**: 주요 종목 관련 뉴스 가산점 부여
-
-**예상 절감 효과:**
-- GPT API 호출: 약 80-90% 감소
-- 서버 부하: 약 60-70% 감소
-- API 비용: 월 약 $50-100 절감 (사용량에 따라 상이)
+- **시장·유튜버 브리핑 캐시**: 성공 분석은 재호출하지 않음
+- **자막 원문 미저장**: GPT 입력으로만 사용 후 요약 결과만 DB 보관
+- **플레이스홀더 채널 스킵**: `PLACEHOLDER_` 채널 ID는 API 호출하지 않음
 
 ### 데이터베이스 최적화
 
-- **인덱스 최적화**: 자주 조회되는 컬럼에 인덱스 추가
+- **인덱스 최적화**: 자주 조회되는 컬럼에 인덱스 추가 (`IF NOT EXISTS`)
 - **복합 키 활용**: Watchlist, NewsStockRelation에서 복합 기본 키 사용
 - **히스토리 데이터 분리**: StockPriceHistory 테이블로 시세 데이터 분리
 - **만료 데이터 자동 정리**: EmailVerification의 만료된 코드 자동 삭제
 
 ### API 사용 전략
 
-- **Yahoo Finance**: 기본 사용 (무료, 제한 없음)
+- **Yahoo Finance**: 기본 사용 (무료)
 - **Alpha Vantage / Twelve Data**: Yahoo Finance 실패 시 폴백
-- **NewsAPI**: 무료 플랜으로 충분 (일일 100회, 2시간마다 수집)
+- **YouTube Data API**: 유튜버 브리핑 수집 (쿼터 주의 — 채널당 최신 5건)
+- **OpenAI**: 시장 브리핑·유튜버 요약·포트폴리오 분석·AI 채팅
 
 ---
 
@@ -1746,30 +1882,19 @@ boolean isVerified = emailVerificationService.isEmailVerified("newemail@example.
 
 ### 데이터베이스 스키마 오류
 
-1. **스키마 파일 확인**
-   - `knockBE/src/main/resources/db/schema.sql` 파일 확인
-   - 최신 스키마 변경사항 반영 여부 확인
-
-2. **Hibernate 설정 확인**
-   - `spring.jpa.hibernate.ddl-auto=update` 설정 확인
-   - 엔티티 클래스와 데이터베이스 스키마 일치 여부 확인
-
-3. **테이블 생성 확인**
+1. **인덱스 이미 존재 (`42P07`)**
+   - 최신 `schema.sql`은 `CREATE INDEX IF NOT EXISTS`를 사용합니다. 파일을 다시 실행하세요.
+2. **Supabase 연결 `Network is unreachable`**
+   - `db.*.supabase.co`(Direct) 대신 **Pooler** (`*.pooler.supabase.com`) + `sslmode=require` 사용
+3. **유튜브 테이블만 추가**
+   - `schema.sql`의 youtube 섹션(14~16)만 SQL Editor에 실행
+4. **테이블/엔티티 확인**
    ```sql
-   -- 모든 테이블 목록 확인
-   SELECT table_name FROM information_schema.tables 
+   SELECT table_name FROM information_schema.tables
    WHERE table_schema = 'public' ORDER BY table_name;
-   
-   -- 특정 테이블 구조 확인
-   \d users
-   \d stocks
-   \d email_verification
    ```
-
-4. **주요 변경사항 확인**
-   - `stocks` 테이블: PK가 `id`에서 `symbol`로 변경됨
-   - `portfolio_item` 테이블: 새로 추가됨
-   - `email_verification` 테이블: 이메일 변경 기능을 위해 추가됨
+   - prod/supabase는 `ddl-auto=validate` — 스키마를 먼저 수동 적용
+   - `youtube_channels`, `youtube_videos`, `youtube_video_analyses` 존재 여부 확인
    - 불필요한 테이블 제거: `stock_predictions`, `earnings_calendar`, `stock_recommendations`, `portfolio_reports`, `industries`
 
 5. **마이그레이션 필요 시**

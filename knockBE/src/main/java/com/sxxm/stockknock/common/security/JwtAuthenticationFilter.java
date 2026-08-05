@@ -42,6 +42,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             path.startsWith("/configuration") ||
             path.startsWith("/api/news/recent") || // 뉴스 조회는 공개 API
             path.startsWith("/api/news/") && path.matches("/api/news/\\d+") || // 뉴스 상세 조회는 공개
+            path.startsWith("/api/youtube") || // 유튜버 브리핑 공개 API
             path.startsWith("/api/auth") || // 인증 API는 공개
             path.startsWith("/api/stocks") || // 주식 정보도 공개
             path.equals("/favicon.ico")) {

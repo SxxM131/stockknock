@@ -120,3 +120,157 @@
   border: none !important;
 }
 
+/* ── Tabs ── */
+.news-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 0.5rem;
+}
+
+.news-tab {
+  padding: 0.6rem 1.1rem;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+}
+
+.news-tab.active {
+  color: #111827;
+  background: #f3f4f6;
+}
+
+/* ── YouTube briefings ── */
+.youtube-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.channel-chip {
+  padding: 0.4rem 0.85rem;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  color: #374151;
+}
+
+.channel-chip.active {
+  background: #111827;
+  border-color: #111827;
+  color: #fff;
+}
+
+.youtube-briefing-list {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.youtube-briefing-card {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.youtube-briefing-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+.youtube-thumb {
+  width: 100%;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 8px;
+  background: #f3f4f6;
+}
+
+.youtube-briefing-body h3 {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 1.05rem;
+  color: #111827;
+}
+
+.youtube-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.youtube-channel {
+  font-weight: 700;
+  color: #374151;
+}
+
+.youtube-summary {
+  margin: 0 0 0.75rem;
+  color: #4b5563;
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.youtube-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tone-badge,
+.period-badge,
+.stock-badge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.tone-badge.positive {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.tone-badge.negative {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.tone-badge.neutral {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.stock-badge {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+@media (max-width: 640px) {
+  .youtube-briefing-card {
+    grid-template-columns: 1fr;
+  }
+
+  .youtube-thumb {
+    height: 160px;
+  }
+}
+
